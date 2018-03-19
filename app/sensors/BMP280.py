@@ -24,7 +24,7 @@ import time
 
 import smbus
 
-from app.utilities import dataConv_20bit
+from app.utilities import unpack_signed_20bit, unpack_signed_short, unpack_unsigned_short
 
 SLAVE_ADDRESS = 0x76
 DEVICE_ID = 0x58
@@ -118,20 +118,72 @@ class BMP280:
     def reset(self):
         self.bus.write_byte_data(self.address, RESET, 0xB6)
         time.sleep(0.1)
+        self.configBMP280()
+        time.sleep(0.1)
 
     def configBMP280(self, ovs_p=OVERSAMPLING_P_16, ovs_t=OVERSAMPLING_T_16, iir=IIR_OFF, t_sb=T_SB_0p5MS, spi=SPI):
         # sleep off
-        self.bus.write_byte_data(self.address, CTRL_MEAS, ovs_t << 5 | ovs_p << 2 | MODE_NRM)
+        cltr_meas_byte = int("{:03b}".format(ovs_p) + "{:03b}".format(ovs_t) + "{:02b}".format(MODE_NRM), 2)
+        self.bus.write_byte_data(self.address, CTRL_MEAS, cltr_meas_byte)
         time.sleep(0.1)
 
         # config
-        self.bus.write_byte_data(self.address, CTRL_MEAS, t_sb << 5 | iir << 2 | spi)
+        config_byte = int("{:03b}".format(t_sb) + "{:03b}".format(iir) + "0" + "{:01b}".format(spi), 2)
+        self.bus.write_byte_data(self.address, CONFIG, config_byte)
         time.sleep(0.1)
 
     def readPressure(self):
-        data = self.bus.read_i2c_block_data(self.address, PRESS_MSB, 3)
-        return dataConv_20bit(data_msb=data[0], data_lsb=data[1], data_xlsb=data[2])
+        _, t_fine = self.readTemperature()
+        msb, lsb, xlsb = self.bus.read_i2c_block_data(self.address, PRESS_MSB, 3)
+        adc_P = unpack_signed_20bit(msb, lsb, xlsb)
+        dig_P1 = unpack_unsigned_short(self.bus.read_byte_data(self.address, DIG_P1_M),
+                                       self.bus.read_byte_data(self.address, DIG_P1_L))
+        dig_P2 = unpack_signed_short(self.bus.read_byte_data(self.address, DIG_P2_M),
+                                     self.bus.read_byte_data(self.address, DIG_P2_L))
+        dig_P3 = unpack_signed_short(self.bus.read_byte_data(self.address, DIG_P3_M),
+                                     self.bus.read_byte_data(self.address, DIG_P3_L))
+        dig_P4 = unpack_unsigned_short(self.bus.read_byte_data(self.address, DIG_P4_M),
+                                       self.bus.read_byte_data(self.address, DIG_P4_L))
+        dig_P5 = unpack_signed_short(self.bus.read_byte_data(self.address, DIG_P5_M),
+                                     self.bus.read_byte_data(self.address, DIG_P5_L))
+        dig_P6 = unpack_signed_short(self.bus.read_byte_data(self.address, DIG_P6_M),
+                                     self.bus.read_byte_data(self.address, DIG_P6_L))
+        dig_P7 = unpack_unsigned_short(self.bus.read_byte_data(self.address, DIG_P7_M),
+                                       self.bus.read_byte_data(self.address, DIG_P7_L))
+        dig_P8 = unpack_signed_short(self.bus.read_byte_data(self.address, DIG_P8_M),
+                                     self.bus.read_byte_data(self.address, DIG_P8_L))
+        dig_P9 = unpack_signed_short(self.bus.read_byte_data(self.address, DIG_P9_M),
+                                     self.bus.read_byte_data(self.address, DIG_P9_L))
+        var1 = t_fine - 128000
+        var2 = var1 * var1 * dig_P6
+        var2 = var2 + ((var1 * dig_P5) << 17)
+        var2 = var2 + (dig_P4 << 35)
+        var1 = ((var1 * var1 * dig_P3) >> 8) + ((var1 * dig_P2) << 12)
+        var1 = ((1 << 47) + var1) * dig_P1 >> 33
+        if var1 == 0:
+            return 0
+        p = 1048576 - adc_P
+        p = (((p << 31) - var2) * 3125) // var1
+        var1 = (dig_P9 * (p >> 13) * (p >> 13)) >> 25
+        var2 = (dig_P8 * p) >> 19
+        calibrated_press = ((p + var1 + var2) >> 8) + (dig_P7 << 4)
+        calibrated_press /= 256
+        calibrated_press /= 100
+        return calibrated_press
 
     def readTemperature(self):
-        data = self.bus.read_i2c_block_data(self.address, TEMP_MSB, 3)
-        return dataConv_20bit(data_msb=data[0], data_lsb=data[1], data_xlsb=data[2])
+        msb, lsb, xlsb = self.bus.read_i2c_block_data(self.address, TEMP_MSB, 3)
+        adc_T = unpack_signed_20bit(msb, lsb, xlsb)
+        dig_T1 = unpack_unsigned_short(self.bus.read_byte_data(self.address, DIG_T1_M),
+                                       self.bus.read_byte_data(self.address, DIG_T1_L))
+        dig_T2 = unpack_signed_short(self.bus.read_byte_data(self.address, DIG_T2_M),
+                                     self.bus.read_byte_data(self.address, DIG_T2_L))
+        dig_T3 = unpack_signed_short(self.bus.read_byte_data(self.address, DIG_T3_M),
+                                     self.bus.read_byte_data(self.address, DIG_T3_L))
+
+        var1 = (((adc_T >> 3) - (dig_T1 << 1)) * dig_T2) >> 11
+        var2 = (((((adc_T >> 4) - dig_T1) * ((adc_T >> 4) - dig_T1)) >> 12) * dig_T3) >> 14
+        t_fine = var1 + var2
+        calibrated_temp = (t_fine * 5 + 128) >> 8
+        calibrated_temp /= 100
+        return calibrated_temp, t_fine
