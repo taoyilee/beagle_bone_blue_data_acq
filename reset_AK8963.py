@@ -1,8 +1,6 @@
 # coding: utf-8
 import smbus
-from MPU9250 import MPU9250
 import time
-import sys
 
 ''' MPU-9250 Register Addresses '''
 
