@@ -1,3 +1,12 @@
+#  This is a FaBo9Axis_MPU9250 library for the FaBo 9AXIS I2C Brick.
+#
+#  http://fabo.io/202.html
+#
+#  Released under APACHE LICENSE, VERSION 2.0
+#
+#  http://www.apache.org/licenses/
+#
+#  FaBo <info@fabo.io>
 import time
 
 import smbus
@@ -11,8 +20,6 @@ AK8963_SLAVE_ADDRESS = 0x0C
 ## Device id
 DEVICE_ID = 0x71
 
-''' MPU-9250 Register Addresses '''
-## sample rate driver
 SMPLRT_DIV = 0x00
 CONFIG = 0x1A
 GYRO_CONFIG = 0x1B

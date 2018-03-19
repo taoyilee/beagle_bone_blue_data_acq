@@ -1,5 +1,3 @@
-# coding: utf-8
-## @package MPU9250
 #  This is a FaBo9Axis_MPU9250 library for the FaBo 9AXIS I2C Brick.
 #
 #  http://fabo.io/202.html
