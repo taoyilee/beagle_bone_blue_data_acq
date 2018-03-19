@@ -18,6 +18,29 @@ Run read9axis to acquire 9-axis data dump in CLI
 python read9axis.py
 ```
 
+## Remote Interpreter Setup
+### Requirements
+1. Pycharm Profession License
+2. Established SSH key authentication
+
+### SSH key authentication Setup
+On you PC:
+```commandline
+ssh-keygen
+``` 
+You will get .ssh/id_rsa and .ssh/id_rsa.pub (private and public key pairs). Skip this step if you already have both of them.
+
+Copy the **public key** to beagle bone with: (Note: DO NOT copy private key. Never **EVER** do this.) 
+```commandline
+scp -r .ssh/id_rsa.pub <user>@<beagle_bone_IP>:~
+```
+Now, login to your beagle bone,
+```commandline
+cat ~/id_rsa.pub >> .ssh/authorized_keys
+```
+You now login to your beagle bone without entering password.
+### Remote Interpreter Setup
+1. Please follow instructions here: https://www.jetbrains.com/help/pycharm/configuring-remote-interpreters-via-ssh.html
 
 ## Beagle Bone Blue System Configuration Suggestions
 ### Requirements:
