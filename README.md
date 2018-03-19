@@ -42,6 +42,9 @@ You now login to your beagle bone without entering password.
 ### Remote Interpreter Setup
 1. Please follow instructions here: https://www.jetbrains.com/help/pycharm/configuring-remote-interpreters-via-ssh.html
 
+### Run/Debug Configuration
+Please refer to the following setup, take notes on the relative directory of your remote interpreter. (Remote interpreter cannot access your development PC!)
+![Remote run setup](https://raw.githubusercontent.com/taoyilee/beagle_bone_blue_data_acq/master/img/remote_run_setup.png)
 ## Beagle Bone Blue System Configuration Suggestions
 ### Requirements:
 1. USB RJ 45 Cable
@@ -55,6 +58,7 @@ It is recommended to install Archlinux to eMMC and remove SD card.
 
 When installation is done, connect USB-RJ 45 Cable to beagle bone blue USB Type A (regular) socket. Connect beagle bone to a DHCP-enabled network and it will acquire an IP address. Login as the default user **alarm** with the password **alarm**. Business as usual afterwards.   
 ### UDEV Rules for I2C
+Use a root shell to issue following commands:
 ```commandline
 groupadd i2c
 usermod -aG i2c myusername
