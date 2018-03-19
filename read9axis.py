@@ -1,11 +1,13 @@
-# coding: utf-8
 import time
 
-import MPU9250 as imu
+from app.sensors import AK8963 as msu
+from app.sensors import MPU9250 as imu
 
 MPU9250 = imu.MPU9250()
+AK8963 = msu.AK8963()
+
 MPU9250.configMPU9250(imu.GFS_250, imu.AFS_8G)
-MPU9250.configAK8963(imu.AK8963_MODE_C100HZ, imu.AK8963_BIT_16)
+AK8963.configAK8963(msu.AK8963_MODE_C100HZ, msu.AK8963_BIT_16)
 while True:
-    print(f"A={MPU9250.readAccel()}, G={MPU9250.readGyro()}, M={MPU9250.readMagnet()}")
+    print(f"A={MPU9250.readAccel()}, G={MPU9250.readGyro()}, M={AK8963.readMagnet()}")
     time.sleep(0.1)

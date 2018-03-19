@@ -1,18 +1,8 @@
-# coding: utf-8
-## @package MPU9250
-#  This is a FaBo9Axis_MPU9250 library for the FaBo 9AXIS I2C Brick.
-#
-#  http://fabo.io/202.html
-#
-#  Released under APACHE LICENSE, VERSION 2.0
-#
-#  http://www.apache.org/licenses/
-#
-#  FaBo <info@fabo.io>
-
 import time
 
 import smbus
+
+from app.utilities import dataConv
 
 ## MPU9250 Default I2C slave address
 SLAVE_ADDRESS = 0x68
@@ -94,7 +84,7 @@ AK8963_BIT_16 = 0x01
 BUS_ADDRESS = 2
 
 
-class MPU9250:
+class AK8963:
     bus = None
 
     ## Constructor
@@ -102,7 +92,7 @@ class MPU9250:
     def __init__(self, address=SLAVE_ADDRESS, bus_addr=BUS_ADDRESS):
         self.bus = smbus.SMBus(bus_addr)
         self.address = address
-        self.configMPU9250(GFS_250, AFS_2G)
+        self.configAK8963(AK8963_MODE_C100HZ, AK8963_BIT_16)
 
     ## Search Device
     #  @param [in] self The object pointer.
@@ -111,49 +101,6 @@ class MPU9250:
     def searchDevice(self):
         who_am_i = self.bus.read_byte_data(self.address, WHO_AM_I)
         return who_am_i == DEVICE_ID
-
-    ## Configure MPU-9250
-    #  @param [in] self The object pointer.
-    #  @param [in] gfs Gyro Full Scale Select(default:GFS_250[+250dps])
-    #  @param [in] afs Accel Full Scale Select(default:AFS_2G[2g])
-    def configMPU9250(self, gfs, afs):
-        if gfs == GFS_250:
-            self.gres = 250.0 / 32768.0
-        elif gfs == GFS_500:
-            self.gres = 500.0 / 32768.0
-        elif gfs == GFS_1000:
-            self.gres = 1000.0 / 32768.0
-        else:  # gfs == GFS_2000
-            self.gres = 2000.0 / 32768.0
-
-        if afs == AFS_2G:
-            self.ares = 2.0 / 32768.0
-        elif afs == AFS_4G:
-            self.ares = 4.0 / 32768.0
-        elif afs == AFS_8G:
-            self.ares = 8.0 / 32768.0
-        else:  # afs == AFS_16G:
-            self.ares = 16.0 / 32768.0
-
-        # sleep off
-        self.bus.write_byte_data(self.address, PWR_MGMT_1, 0x00)
-        time.sleep(0.1)
-        # auto select clock source
-        self.bus.write_byte_data(self.address, PWR_MGMT_1, 0x01)
-        time.sleep(0.1)
-        # DLPF_CFG
-        self.bus.write_byte_data(self.address, CONFIG, 0x03)
-        # sample rate divider
-        self.bus.write_byte_data(self.address, SMPLRT_DIV, 0x04)
-        # gyro full scale select
-        self.bus.write_byte_data(self.address, GYRO_CONFIG, gfs << 3)
-        # accel full scale select
-        self.bus.write_byte_data(self.address, ACCEL_CONFIG, afs << 3)
-        # A_DLPFCFG
-        self.bus.write_byte_data(self.address, ACCEL_CONFIG_2, 0x03)
-        # BYPASS_EN
-        self.bus.write_byte_data(self.address, INT_PIN_CFG, 0x02)
-        time.sleep(0.1)
 
     ## Configure AK8963
     #  @param [in] self The object pointer.
@@ -198,41 +145,6 @@ class MPU9250:
         else:
             return False
 
-    ## Read accelerometer
-    #  @param [in] self The object pointer.
-    #  @retval x : x-axis data
-    #  @retval y : y-axis data
-    #  @retval z : z-axis data
-    def readAccel(self):
-        data = self.bus.read_i2c_block_data(self.address, ACCEL_OUT, 6)
-        x = self.dataConv(data[1], data[0])
-        y = self.dataConv(data[3], data[2])
-        z = self.dataConv(data[5], data[4])
-
-        x = round(x * self.ares, 3)
-        y = round(y * self.ares, 3)
-        z = round(z * self.ares, 3)
-
-        return {"x": x, "y": y, "z": z}
-
-    # Read gyro
-    #  @param [in] self The object pointer.
-    #  @retval x : x-gyro data
-    #  @retval y : y-gyro data
-    #  @retval z : z-gyro data
-    def readGyro(self):
-        data = self.bus.read_i2c_block_data(self.address, GYRO_OUT, 6)
-
-        x = self.dataConv(data[1], data[0])
-        y = self.dataConv(data[3], data[2])
-        z = self.dataConv(data[5], data[4])
-
-        x = round(x * self.gres, 3)
-        y = round(y * self.gres, 3)
-        z = round(z * self.gres, 3)
-
-        return {"x": x, "y": y, "z": z}
-
     # Read magneto
     #  @param [in] self The object pointer.
     #  @retval x : X-magneto data
@@ -250,32 +162,12 @@ class MPU9250:
 
             # check overflow
             if (data[6] & 0x08) != 0x08:
-                x = self.dataConv(data[0], data[1])
-                y = self.dataConv(data[2], data[3])
-                z = self.dataConv(data[4], data[5])
+                x = dataConv(data[0], data[1])
+                y = dataConv(data[2], data[3])
+                z = dataConv(data[4], data[5])
 
                 x = round(x * self.mres * self.magXcoef, 3)
                 y = round(y * self.mres * self.magYcoef, 3)
                 z = round(z * self.mres * self.magZcoef, 3)
 
         return {"x": x, "y": y, "z": z}
-
-    ## Read temperature
-    #  @param [out] temperature temperature(degrees C)
-    def readTemperature(self):
-        data = self.bus.read_i2c_block_data(self.address, TEMP_OUT, 2)
-        temp = self.dataConv(data[1], data[0])
-
-        temp = round((temp / 333.87 + 21.0), 3)
-        return temp
-
-    ## Data Convert
-    # @param [in] self The object pointer.
-    # @param [in] data1 LSB
-    # @param [in] data2 MSB
-    # @retval Value MSB+LSB(int 16bit)
-    def dataConv(self, data1, data2):
-        value = data1 | (data2 << 8)
-        if (value & (1 << 16 - 1)):
-            value -= (1 << 16)
-        return value
