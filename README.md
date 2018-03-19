@@ -54,6 +54,12 @@ https://archlinuxarm.org/platforms/armv7/ti/beaglebone-black-wireless
 It is recommended to install Archlinux to eMMC and remove SD card.
 
 When installation is done, connect USB-RJ 45 Cable to beagle bone blue USB Type A (regular) socket. Connect beagle bone to a DHCP-enabled network and it will acquire an IP address. Login as the default user **alarm** with the password **alarm**. Business as usual afterwards.   
+### UDEV Rules for I2C
+```commandline
+groupadd i2c
+usermod -aG i2c myusername
+echo 'KERNEL=="i2c-[0-9]*", GROUP="i2c"' >> /etc/udev/rules.d/10-local_i2c_group.rules
+```
 
 ## Disclaimer
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
