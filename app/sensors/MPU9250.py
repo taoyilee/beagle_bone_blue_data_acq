@@ -77,7 +77,7 @@ class MPU9250:
     def __init__(self, address=SLAVE_ADDRESS, bus_addr=BUS_ADDRESS):
         self.bus = smbus.SMBus(bus_addr)
         self.address = address
-        self.configMPU9250(GFS_250, AFS_2G)
+        self.configMPU9250(GFS_2000, AFS_16G)
 
     ## Search Device
     #  @param [in] self The object pointer.
