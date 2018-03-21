@@ -22,8 +22,9 @@ output_file = os.path.join(output_dir, f"data_12axis_{st}.csv")
 print(f"** {st} Writing CSV to {output_file}")
 with open(output_file, 'w', newline='') as csvfile:
     csv_writer = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-    csv_writer.writerow(["Data", "Timestamp", "Wall_Time", "MPU_Temp", "IMU_Ax", "IMU_Ay", "IMU_Az", "IMU_Gx", "IMU_Gy",
-                         "IMU_Gz", "MSU_Ax", "MSU_Ay", "MSU_Az", "Baro_Temp", "Baro"])
+    csv_writer.writerow(
+        ["Data", "Timestamp", "Wall_Time", "MPU_Temp", "IMU_Ax", "IMU_Ay", "IMU_Az", "IMU_Gx", "IMU_Gy",
+         "IMU_Gz", "MSU_Ax", "MSU_Ay", "MSU_Az", "Baro_Temp", "Baro"])
     i = 0
     while True:
         try:
