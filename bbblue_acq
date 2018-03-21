@@ -1,0 +1,81 @@
+#!/usr/bin/env python
+import argparse
+import csv
+import datetime
+import os
+import time
+
+from app.sensors import AK8963 as msu
+from app.sensors import BMP280 as barometer
+from app.sensors import MPU9250 as imu
+
+
+def main(write_csv=False, write_db=False, verbosity=0):
+    mpu9250 = imu.MPU9250()
+    ak8963 = msu.AK8963()
+    bmp280 = barometer.BMP280()
+
+    mpu9250.configMPU9250(imu.GFS_250, imu.AFS_8G)
+    ak8963.configAK8963(msu.AK8963_MODE_C100HZ, msu.AK8963_BIT_16)
+    ts = time.time()
+    st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H%M%S')
+    output_dir = "data_collection"
+    os.makedirs(output_dir, exist_ok=True)
+
+    output_file = os.path.join(output_dir, f"data_12axis_{st}.csv")
+
+    if write_csv:
+        print(f"** {st} Writing CSV to {output_file}")
+        csv_file_handle = open(output_file, 'w', newline='')
+        csv_writer = csv.writer(csv_file_handle, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        csv_writer.writerow(
+            ["Data", "Timestamp", "Wall_Time", "MPU_Temp", "IMU_Ax", "IMU_Ay", "IMU_Az", "IMU_Gx", "IMU_Gy",
+             "IMU_Gz", "MSU_Ax", "MSU_Ay", "MSU_Az", "Baro_Temp", "Baro"])
+    i = 0
+    while True:
+        try:
+            ts = time.time()
+            st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H%M%S')
+            temp_imu = mpu9250.readTemperature()
+            acc = mpu9250.readAccel()
+            gyro = mpu9250.readGyro()
+            magnet = ak8963.readMagnet()
+            temperature_barometer = bmp280.readTemperature()[0]
+            barometric_pressure = bmp280.readPressure()
+
+            if verbosity > 0:
+                print(f"{ts:.2f} {st} MPU9250 Data: = {temp_imu:.1f} C ")
+                print(f"{ts:.2f} {st} \t{acc['x']:= 7.2f} G   {acc['y']:= 7.2f} G   {acc['z']:= 7.2f} G")
+                print(f"{ts:.2f} {st} \t{gyro['x']:= 7.2f} dps {gyro['y']:= 7.2f} dps {gyro['z']:= 7.2f} dps")
+                print(f"{ts:.2f} {st} AK8963 Data: = {magnet['x']:= 7.2f} {magnet['y']:= 7.2f} {magnet['z']:= 7.2f}")
+                print(f"{ts:.2f} {st} BMP280 Data: = {temperature_barometer:.1f} C ", end="")
+                print(f"{barometric_pressure:.1f} hPa")
+
+            csv_writer.writerow([i, ts, st, temp_imu, acc['x'], acc['y'], acc['z'], gyro['x'], gyro['y'], gyro['z'],
+                                 magnet['x'], magnet['y'], magnet['z'], temperature_barometer,
+                                 barometric_pressure]) if write_csv else None
+            i += 1
+        except KeyboardInterrupt:
+            print(f"** {st} KeyboardInterrupt received, closing file.")
+            csv_file_handle.close() if write_csv else None
+            break
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Beagle Bone Blue Data Acquisition Wrapper')
+    parser.add_argument('-3', help='3 Axis Mode', action='store_true')
+    parser.add_argument('-6', help='6 Axis Mode', action='store_true')
+    parser.add_argument('-9', help='9 Axis Mode', action='store_true')
+    parser.add_argument('-12', help='12 Axis Mode', action='store_true')
+    parser.add_argument('-c', help='Write CSV', action='store_true')
+    parser.add_argument('-d', help='Write Database', action='store_true')
+    parser.add_argument('--csv', nargs=1, help='Specific CSV File Name Write')
+    parser.add_argument('--db-server-ip', nargs=1, help='Mysql Database Server IP')
+    parser.add_argument('--verbose', '-v', action='count')
+    args = vars(parser.parse_args())
+    write_csv = args['c']
+    write_db = args['d']
+    verbosity = args['verbose']
+    if not write_csv and not write_db:
+        verbosity = 1
+    main(write_csv=args['c'], write_db=args['d'], verbosity=verbosity)

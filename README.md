@@ -10,12 +10,28 @@ Beagle Bone Blue Data Acquisition is a collection of python scripts which allows
 Install smbus-cffi on your beagle bone. It is recommended to use virtual environment
 
 ```commandline
-pip install smbus-cffi
+pip install -r requirements.txt
 ``` 
 
-Run read9axis to acquire 9-axis data dump in CLI
+Run ./bbblue_acq to acquire 12-axis data dump in CLI
 ```commandline
-python read9axis.py
+./bbblue_acq
+#usage: bbblue_acq [-h] [-3] [-6] [-9] [-12] [-c] [-d] [--csv CSV]
+#                  [--db-server-ip DB_SERVER_IP]
+
+#Beagle Bone Blue Data Acquisition Wrapper
+
+#optional arguments:
+#  -h, --help            show this help message and exit
+#  -3                    3 Axis Mode
+#  -6                    6 Axis Mode
+#  -9                    9 Axis Mode
+#  -12                   12 Axis Mode
+#  -c                    Write CSV
+#  -d                    Write Database
+#  --csv CSV             Specific CSV File Name Write
+#  --db-server-ip DB_SERVER_IP
+#                        Mysql Database Server IP
 ```
 
 ## Remote Interpreter Setup
