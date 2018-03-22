@@ -1,4 +1,11 @@
+import datetime
 import struct
+import time
+
+
+def current_timestamp():
+    ts = time.time()
+    return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H%M%S'), ts
 
 
 def dataConv(data1, data2):
